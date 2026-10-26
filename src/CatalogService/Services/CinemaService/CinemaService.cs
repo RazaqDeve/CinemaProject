@@ -55,11 +55,18 @@ namespace CatalogService.Services.CinemaService
 
         public async Task<CinemaDto> CreateAsync(CinemaDto dto, CancellationToken cancellationToken = default)
         {
+            var cinemaName = dto.Name.Trim();
+            var exists = await _context.Cinemas.AnyAsync(c => c.Name.ToLower() == cinemaName.ToLower(), cancellationToken);
+
+            if (exists)
+            {
+                throw new InvalidOperationException("A cinema with this name already exists.");
+            }
 
             var cinema = new Cinema
             {
                 Id = Guid.NewGuid(),
-                Name = dto.Name,
+                Name = cinemaName,
                 PhoneNumber = dto.PhoneNumber,
                 Address = dto.Address
             };

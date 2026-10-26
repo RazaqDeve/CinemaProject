@@ -56,7 +56,12 @@ namespace CatalogService.Controllers
             try
             {
                 var result = await _cinemaService.CreateAsync(dto, token);
-                return CreatedAtAction(nameof(GetByIdAsync), new { id = result.Id }, result);
+                return Ok(result);
+            }
+            catch(InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Cinema with the same name already exists.");
+                return Conflict(new {message = ex.Message});
             }
             catch (Exception ex)
             {
