@@ -15,11 +15,11 @@ builder.Services.AddDbContext<IdentityDbContext>(options =>
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
     options.User.RequireUniqueEmail = false;
-    options.Password.RequiredLength = 8;
-    options.Password.RequireDigit = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireNonAlphanumeric = false;
+    // options.Password.RequiredLength = 8;
+    // options.Password.RequireDigit = true;
+    // options.Password.RequireUppercase = true;
+    // options.Password.RequireLowercase = true;
+    // options.Password.RequireNonAlphanumeric = false;
 }).AddRoles<IdentityRole>()
 .AddEntityFrameworkStores<IdentityDbContext>()
 .AddSignInManager();
