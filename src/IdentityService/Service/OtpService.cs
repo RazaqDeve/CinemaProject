@@ -21,7 +21,7 @@ public class OtpService : IOtpService
     public Task SaveOtpAsync(string phoneNumber, string code, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
+        phoneNumber = phoneNumber.Trim();
         ArgumentException.ThrowIfNullOrWhiteSpace(phoneNumber);
         ArgumentException.ThrowIfNullOrWhiteSpace(code);
 
@@ -55,6 +55,7 @@ public class OtpService : IOtpService
             return Task.FromResult(false);
         }
 
+        phoneNumber = phoneNumber.Trim();
         bool isValid = CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(code),
             Encoding.UTF8.GetBytes(otpEntry.Code));

@@ -1,4 +1,4 @@
-using System;
+
 
 namespace IdentityService.Service;
 
@@ -10,3 +10,6 @@ public interface IOtpService
 
     Task<bool> VerifyOtpAsync(string phoneNumber, string code, CancellationToken cancellationToken = default);
 }
+
+  //Task GenerateOtpAsync(string phoneNumber, CancellationToken cancellationToken = default);
+  
