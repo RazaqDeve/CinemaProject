@@ -13,7 +13,7 @@ builder.Services.AddDbContext<IdentityDbContext>(options =>
 
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
-    options.User.RequireUniqueEmail = false;
+    options.User.RequireUniqueEmail = false; 
     // options.Password.RequiredLength = 8;
     // options.Password.RequireDigit = true;
     // options.Password.RequireUppercase = true;
@@ -29,11 +29,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "IdentityService:";
 });
 
+builder.Services.AddScoped<IOtpService, OtpService>();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<IOtpService, OtpService>();
-builder.Services.AddScoped<IOtpService, OtpService>();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
