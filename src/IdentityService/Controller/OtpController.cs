@@ -1,48 +1,117 @@
+
 using IdentityService.DTOs;
 using IdentityService.Service;
 using Microsoft.AspNetCore.Mvc;
 
-namespace IdentityService
+namespace IdentityService.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class OtpController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class OtpController : ControllerBase
+    private readonly IOtpService _otpService;
+    private readonly IWebHostEnvironment _environment;
+
+    public OtpController(IOtpService otpService, IWebHostEnvironment environment)
     {
-        private readonly IOtpService _otpService;
+        _otpService = otpService;
+        _environment = environment;
+    }
 
-        public OtpController(IOtpService otpService) => _otpService = otpService;
+    [HttpPost("request")]
+    public async Task<IActionResult> RequestOtp(RequestOtpRequest request, CancellationToken token)
+    {
+        string code = await _otpService.GenerateOtpAsync(token);
 
-        [HttpPost("request")]
-        public async Task<IActionResult> RequestOtp(RequestOtpRequest request, CancellationToken token)
+        OtpSaveStatus result = await _otpService.SaveOtpAsync(
+            request.PhoneNumber,
+            code,
+            token);
+
+        switch (result)
         {
-            string code = await _otpService.GenerateOtpAsync(token);
-            await _otpService.SaveOtpAsync(request.PhoneNumber, code, token);
+            case OtpSaveStatus.Saved:
 
-            return Ok(new
-            {
-                message = "OTP generated successfully.",
-                phoneNumber = request.PhoneNumber,
-                code = code
-            });
+                // نمایش کد فقط برای آزمایش در Development
+                if (_environment.IsDevelopment())
+                {
+                    return Ok(new
+                    {
+                        message = "OTP generated successfully.",
+                        phoneNumber = request.PhoneNumber,
+                        code = code
+                    });
+                }
+
+                return Accepted(new
+                {
+                    message = "OTP request accepted."
+                });
+
+            case OtpSaveStatus.CooldownActive:
+
+                return StatusCode(
+                    StatusCodes.Status429TooManyRequests,
+                    new
+                    {
+                        message = "Please wait before requesting another OTP."
+                    });
+
+            case OtpSaveStatus.RequestLimitReached:
+
+                return StatusCode(
+                    StatusCodes.Status429TooManyRequests,
+                    new
+                    {
+                        message = "You have reached the OTP request limit."
+                    });
+
+            default:
+
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError);
         }
+    }
 
-        [HttpPost("verify")]
-        public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request, CancellationToken token)
+    [HttpPost("verify")]
+    public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request, CancellationToken token)
+    {
+        OtpVerificationStatus result = await _otpService.VerifyOtpAsync(request.PhoneNumber, request.Code, token);
+
+        switch (result)
         {
-            bool isValid = await _otpService.VerifyOtpAsync(request.PhoneNumber, request.Code, token);
+            case OtpVerificationStatus.Verified:
 
-            if (!isValid)
-            {
+                return Ok(new
+                {
+                    message = "OTP verified successfully."
+                });
+
+            case OtpVerificationStatus.InvalidCode:
+
                 return BadRequest(new
                 {
-                    message = "Invalid or expired OTP."
+                    message = "Invalid OTP code."
                 });
-            }
 
-            return Ok(new
-            {
-                message = "OTP verified successfully."
-            });
+            case OtpVerificationStatus.ExpiredOrNotFound:
+
+                return BadRequest(new
+                {
+                    message = "OTP has expired or does not exist."
+                });
+
+            case OtpVerificationStatus.AttemptsExceeded:
+
+                return StatusCode(StatusCodes.Status429TooManyRequests,
+                    new
+                    {
+                        message = "Maximum OTP verification attempts exceeded."
+                    });
+
+            default:
+
+                return StatusCode(StatusCodes.Status500InternalServerError);
         }
     }
 }

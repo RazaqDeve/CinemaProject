@@ -3,6 +3,7 @@ using IdentityService.Models;
 using IdentityService.Service;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,11 +24,11 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 .AddEntityFrameworkStores<IdentityDbContext>()
 .AddSignInManager();
 
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "IdentityService:";
-});
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
+    ?? throw new InvalidOperationException("Redis connection string is not configured.");
+
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+ ConnectionMultiplexer.Connect(redisConnectionString));
 
 builder.Services.AddScoped<IOtpService, OtpService>();
 
