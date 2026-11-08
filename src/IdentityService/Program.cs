@@ -1,6 +1,7 @@
 using IdentityService.Data;
 using IdentityService.Models;
 using IdentityService.Service;
+using IdentityService.Service.OtpRedis;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -30,6 +31,7 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis")
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
  ConnectionMultiplexer.Connect(redisConnectionString));
 
+builder.Services.AddSingleton<OtpHashHelper>();
 builder.Services.AddScoped<IOtpService, OtpService>();
 
 builder.Services.AddControllers();
