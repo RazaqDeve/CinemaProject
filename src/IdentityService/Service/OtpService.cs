@@ -3,7 +3,6 @@ using System.Text;
 using System.Security.Cryptography;
 using StackExchange.Redis;
 using IdentityService.Service.OtpRedis;
-using Microsoft.Extensions.Configuration;
 
 
 namespace IdentityService.Service;
