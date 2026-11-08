@@ -1,4 +1,4 @@
-
+using Microsoft.AspNetCore.RateLimiting;
 using IdentityService.DTOs;
 using IdentityService.Service;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +19,7 @@ public class OtpController : ControllerBase
     }
 
     [HttpPost("request")]
+    [EnableRateLimiting("otp-request-by-ip")]
     public async Task<IActionResult> RequestOtp(RequestOtpRequest request, CancellationToken token)
     {
         string code = await _otpService.GenerateOtpAsync(token);
@@ -74,6 +75,7 @@ public class OtpController : ControllerBase
     }
 
     [HttpPost("verify")]
+    [EnableRateLimiting("otp-verify-by-ip")]
     public async Task<IActionResult> VerifyOtp(VerifyOtpRequest request, CancellationToken token)
     {
         OtpVerificationStatus result = await _otpService.VerifyOtpAsync(request.PhoneNumber, request.Code, token);

@@ -5,6 +5,8 @@ using IdentityService.Service.OtpRedis;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,6 +41,43 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
+
+    // OTP Request: 10 requests per IP per minute
+    options.AddPolicy("otp-request-by-ip", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey:
+                httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+
+    // OTP Verify: 20 requests per IP per minute
+    options.AddPolicy("otp-verify-by-ip", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey:
+                httpContext.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown",
+
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+});
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -49,6 +88,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRouting();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
