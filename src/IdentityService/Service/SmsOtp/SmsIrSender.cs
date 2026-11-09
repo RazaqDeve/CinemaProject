@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using IdentityService.Service.OtpRedis.sms;
+using IdentityService.Service.OtpRedis.SmsOtp;
 using Microsoft.Extensions.Options;
 
 namespace IdentityService.Service.Sms;
@@ -29,9 +29,9 @@ public class SmsIrSender : ISmsSender
                 "SMS.ir TemplateId is not configured.");
         }
 
-        _httpClient.DefaultRequestHeaders.Add(
-            "X-API-KEY",
-            _options.ApiKey);
+        //  _httpClient.DefaultRequestHeaders.Add(
+        //     "X-API-KEY",
+        //    _options.ApiKey);
     }
 
     public async Task SendOtpAsync(

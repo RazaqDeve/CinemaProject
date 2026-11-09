@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace IdentityService.Service.OtpRedis.sms
+namespace IdentityService.Service.OtpRedis.SmsOtp
 {
     public interface ISmsSender
     {
