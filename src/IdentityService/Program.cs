@@ -1,13 +1,14 @@
 using IdentityService.Data;
 using IdentityService.Models;
 using IdentityService.Service;
+using IdentityService.Service.MeliPayamak;
 using IdentityService.Service.OtpRedis;
 using IdentityService.Service.OtpRedis.SmsOtp;
-using IdentityService.Service.Sms;
-
+using IdentityService.Service.SmsOtp;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+
+
 
 using StackExchange.Redis;
 using System.Threading.RateLimiting;
@@ -48,44 +49,21 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(redisConnectionString));
 
 // ----------------------------------
-// SMS.ir Options
+// https://www.melipayamak.com/ Options
 // ----------------------------------
 
-builder.Services.AddOptions<SmsIrOptions>()
-    .Bind(builder.Configuration.GetSection("SmsIr"))
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(options.ApiKey),
-        "SMS.ir API Key is required.")
-    .Validate(
-        options => options.TemplateId > 0,
-        "SMS.ir TemplateId must be greater than zero.")
-    .Validate(
-        options => !string.IsNullOrWhiteSpace(options.ParameterName),
-        "SMS.ir ParameterName is required.")
-    .ValidateOnStart();
+builder.Services.Configure<MeliPayamakOptions>(
+    builder.Configuration.GetSection("MeliPayamak"));
 
-// ----------------------------------
-// SMS.ir HttpClient
-// ----------------------------------
-
-builder.Services.AddHttpClient<ISmsSender, SmsIrSender>(
-    (serviceProvider, client) =>
+builder.Services.AddHttpClient<ISmsSender, MeliPayamakSender>(
+    client =>
     {
-        var options = serviceProvider
-            .GetRequiredService<IOptions<SmsIrOptions>>()
-            .Value;
-
-        client.BaseAddress = new Uri("https://api.sms.ir/");
+        client.BaseAddress = new Uri(
+            "https://rest.payamak-panel.com/");
 
         client.Timeout = TimeSpan.FromSeconds(15);
-
-        client.DefaultRequestHeaders.TryAddWithoutValidation(
-            "X-API-KEY",
-            options.ApiKey);
-
-        client.DefaultRequestHeaders.Accept.ParseAdd(
-            "application/json");
     });
+
 
 // ----------------------------------
 // OTP Services
