@@ -8,6 +8,6 @@ namespace IdentityService.Service.SmsOtp
 
         public string Password { get; set; } = string.Empty;
 
-        public string From { get; set; } = string.Empty;
+        public int BodyId  { get; set; }
     }
 }
