@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BookingService.Entities.Entity
+namespace BookingService.Entities.Enum
 {
     // وضعیت صندلی در یک سانس.
     public enum SeatStatus
