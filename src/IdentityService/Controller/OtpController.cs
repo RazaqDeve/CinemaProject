@@ -13,90 +13,94 @@ public class OtpController : ControllerBase
     private readonly IOtpService _otpService;
     private readonly ISmsSender _smsSender;
     private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<OtpController> _logger;
 
-    public OtpController(IOtpService otpService,ISmsSender smsSender, IWebHostEnvironment environment)
+    public OtpController(IOtpService otpService, ISmsSender smsSender, IWebHostEnvironment environment, ILogger<OtpController> logger)
     {
         _otpService = otpService;
         _environment = environment;
         _smsSender = smsSender;
+        _logger = logger;
     }
 
-[HttpPost("request")]
-[EnableRateLimiting("otp-request-by-ip")]
-public async Task<IActionResult> RequestOtp(RequestOtpRequest request, CancellationToken token)
-{
-    // 1. Generate OTP
-    string code = await _otpService.GenerateOtpAsync(token);
-
-    // 2. Save OTP in Redis
-    OtpSaveStatus result = await _otpService.SaveOtpAsync(
-        request.PhoneNumber,
-        code,
-        token);
-
-    switch (result)
+    [HttpPost("request")]
+    [EnableRateLimiting("otp-request-by-ip")]
+    public async Task<IActionResult> RequestOtp(RequestOtpRequest request, CancellationToken token)
     {
-        case OtpSaveStatus.Saved:
+        // 1. Generate OTP
+        string code = await _otpService.GenerateOtpAsync(token);
 
-            // 3. Send OTP through SMS.ir
-            try
-            {
-                await _smsSender.SendOtpAsync(
-                    request.PhoneNumber,
-                    code,
-                    token);
-            }
-            catch (HttpRequestException)
-            {
+        // 2. Save OTP in Redis
+        OtpSaveStatus result = await _otpService.SaveOtpAsync(
+            request.PhoneNumber,
+            code,
+            token);
+
+        switch (result)
+        {
+            case OtpSaveStatus.Saved:
+
+                // 3. Send OTP through SMS.ir
+                try
+                {
+                    await _smsSender.SendOtpAsync(
+                        request.PhoneNumber,
+                        code,
+                        token);
+                }
+                catch (HttpRequestException ex)
+                {
+                    _logger.LogError(ex, "MeliPayamak SMS sending failed. StatusCode: {StatusCode}", ex.StatusCode);
+
+                    return StatusCode(
+                        StatusCodes.Status502BadGateway,
+                        new
+                        {
+                            message = "Unable to send SMS. Please try again later."
+                        });
+                }
+
+                // 4. Development response
+                if (_environment.IsDevelopment())
+                {
+                    return Ok(new
+                    {
+                        message = "OTP generated successfully.",
+                        phoneNumber = request.PhoneNumber,
+                        code = code
+                    });
+                }
+
+                // 5. Production response
+                return Accepted(new
+                {
+                    message = "OTP request accepted."
+                });
+
+            case OtpSaveStatus.CooldownActive:
+
                 return StatusCode(
-                    StatusCodes.Status502BadGateway,
+                    StatusCodes.Status429TooManyRequests,
                     new
                     {
-                        message = "Unable to send SMS. Please try again later."
+                        message = "Please wait before requesting another OTP."
                     });
-            }
 
-            // 4. Development response
-            if (_environment.IsDevelopment())
-            {
-                return Ok(new
-                {
-                    message = "OTP generated successfully.",
-                    phoneNumber = request.PhoneNumber,
-                    code = code
-                });
-            }
+            case OtpSaveStatus.RequestLimitReached:
 
-            // 5. Production response
-            return Accepted(new
-            {
-                message = "OTP request accepted."
-            });
+                return StatusCode(
+                    StatusCodes.Status429TooManyRequests,
+                    new
+                    {
+                        message = "You have reached the OTP request limit."
+                    });
 
-        case OtpSaveStatus.CooldownActive:
+            default:
 
-            return StatusCode(
-                StatusCodes.Status429TooManyRequests,
-                new
-                {
-                    message = "Please wait before requesting another OTP."
-                });
-
-        case OtpSaveStatus.RequestLimitReached:
-
-            return StatusCode(
-                StatusCodes.Status429TooManyRequests,
-                new
-                {
-                    message = "You have reached the OTP request limit."
-                });
-
-        default:
-
-            return StatusCode(
-                StatusCodes.Status500InternalServerError);
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError);
+        }
     }
-}
 
     [HttpPost("verify")]
     [EnableRateLimiting("otp-verify-by-ip")]

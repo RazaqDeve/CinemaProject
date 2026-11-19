@@ -27,10 +27,7 @@ public class MeliPayamakSender : ISmsSender
         _options = options.Value;
     }
 
-    public async Task SendOtpAsync(
-        string phoneNumber,
-        string code,
-        CancellationToken cancellationToken = default)
+    public async Task SendOtpAsync(string phoneNumber, string code, CancellationToken cancellationToken = default)
     {
         // 1. Validate phone number
         if (string.IsNullOrWhiteSpace(phoneNumber))
@@ -111,13 +108,14 @@ public class MeliPayamakSender : ISmsSender
         }
 
         // 9. Check API-level result
-        if (result.RetStatus != 1 ||
-            string.IsNullOrWhiteSpace(result.Value))
+        if (result.RetStatus != 1 || string.IsNullOrWhiteSpace(result.Value))
         {
             throw new HttpRequestException(
-                $"MeliPayamak rejected SMS request. " +
-                $"RetStatus: {result.RetStatus}, " +
-                $"Message: {result.StrRetStatus}");
+          $"MeliPayamak rejected SMS request. " +
+          $"HTTP: {(int)response.StatusCode}, " +
+          $"RetStatus: {result.RetStatus}, " +
+          $"Message: {result.StrRetStatus}, " +
+          $"Value: {result.Value}");
         }
 
         // 10. SMS request accepted by provider
